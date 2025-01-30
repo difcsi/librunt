@@ -8,6 +8,7 @@ typedef bool _Bool;
 
 #include <stddef.h> /* for offsetof */
 #include <stdint.h>
+size_t strlen(const char *s); // Declare to avoid including standard library header
 #include <elf.h>
 #include "elfw.h"
 #include "vas.h" /* hmm -- may pollute namespace, but see how we go */
