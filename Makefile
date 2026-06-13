@@ -20,6 +20,27 @@ debug-%/librunt_preload.a:
 opt-%/librunt_preload.a:
 	mkdir -p $(dir build/$@) && cd $(dir build/$@) && $(MAKE_PREFIX) $(MAKE) -f ../../src/Makefile
 
+# Native (host-arch) build, into build/opt (no arch suffix). This is what
+# lib/outdir and the test harness expect, so it is kept separate from the
+# multiarch TARGETS above. The recursive make handles incremental rebuilds
+# via its own .d files, so this is always phony.
+.PHONY: native
+native:
+	mkdir -p build/opt && cd build/opt && $(MAKE) -f ../../src/Makefile
+
+# Convenience symlinks under lib/ (lib/outdir -> build/opt, lib/librunt_preload.so, ...)
+.PHONY: lib
+lib: native
+	$(MAKE) -C lib
+
+# Build the native library and run the test suite. This is the one-stop
+# target for running the tests from a clean checkout: 'make check'.
+.PHONY: check test
+check test: lib
+	$(MAKE) -C test checkall
+
 .PHONY: clean
 clean:
 	rm -rf build
+	$(MAKE) -C lib clean
+	$(MAKE) -C test clean
