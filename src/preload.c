@@ -265,7 +265,6 @@ void *dlsym(void *handle, const char *symbol)
 	 * 
 	 * With the preload first in link order, that hands an interposing client its OWN symbol back; e.g. a library that wraps
 	 * pthread_create and does dlsym(RTLD_NEXT, "pthread_create") then calls itself forever (Alaska...). 
-	 * So resolve RTLD_NEXT 
 	 */
 	if (handle == RTLD_NEXT)
 	{
@@ -273,17 +272,13 @@ void *dlsym(void *handle, const char *symbol)
 		struct link_map *caller_lm = get_highest_loaded_object_below(caller);
 		if (caller_lm)
 		{
-			void *ret = NULL;
-			for (struct link_map *l = caller_lm->l_next; l; l = l->l_next)
+			/* Anchor the RTLD_NEXT search on the *caller's* object*/
+			void *ret = fake_dlsym_from(RTLD_NEXT, symbol, caller_lm);
+			if (ret == (void*) -1)
 			{
-				ElfW(Sym) *found = symbol_lookup_in_object(l, symbol);
-				if (found && found->st_shndx != SHN_UNDEF)
-				{
-					ret = sym_to_addr(found);
-					break;
-				}
+				our_dlerror = "symbol not found (RTLD_NEXT)";
+				ret = NULL;
 			}
-			if (!ret) our_dlerror = "symbol not found (RTLD_NEXT)";
 			if (we_set_flag) __avoid_libdl_calls = 0;
 			return ret;
 		}
